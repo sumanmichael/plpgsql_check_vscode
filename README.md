@@ -1,6 +1,6 @@
-# pl-pgsql-check-linter README
+# plpgsql-checker README
 
-This is the README for your extension "pl-pgsql-check-linter". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "plpgsql-checker". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 

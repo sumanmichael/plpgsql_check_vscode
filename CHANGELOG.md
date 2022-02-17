@@ -1,6 +1,6 @@
 # Change Log
 
-All notable changes to the "pl-pgsql-check-linter" extension will be documented in this file.
+All notable changes to the "plpgsql-checker" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
