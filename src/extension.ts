@@ -14,7 +14,9 @@ export async function activate(context: vscode.ExtensionContext) {
   const diagnosticCollection =
     vscode.languages.createDiagnosticCollection("plpgsql-check");
 
-  const document = vscode.window.activeTextEditor?.document;
+  let document = vscode.window.activeTextEditor?.document;
+
+
 
   const checkRoutineFunction = async (
     functionName: string,
@@ -92,6 +94,12 @@ export async function activate(context: vscode.ExtensionContext) {
     "sql",
     new CodelensProvider(regex)
   );
+  
+  const editorChangeHook = vscode.window.onDidChangeActiveTextEditor((editor) => {
+    if (editor) {
+       document = vscode.window.activeTextEditor?.document;
+    }
+  });
 
   // Push all of the disposables that should be cleaned up when the extension is disabled
   context.subscriptions.push(
@@ -99,7 +107,8 @@ export async function activate(context: vscode.ExtensionContext) {
     checkRoutineCommand,
     clearRoutineDiagnosticsCommand,
     codeLensProvider,
-    checkAllRoutinesCommand
+    checkAllRoutinesCommand,
+    editorChangeHook,
   );
 }
 
