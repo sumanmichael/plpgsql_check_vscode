@@ -13,6 +13,40 @@
 		"onLanguage:sql"
 	],
 	"main": "./out/extension.js",
+	"contributes":{
+		"configuration":[
+			{
+				"title": "PL/pgSQL Check Linter",
+				"properties": {
+					"plpgsql-checker.config.host": {
+						"type": "string",
+						"default": "localhost",
+						"description": "Hostname of the server"
+					},
+					"plpgsql-checker.config.port": {
+						"type": "number",
+						"default": "5432",
+						"description": "Port of the server"
+					},
+					"plpgsql-checker.config.user": {
+						"type": "string",
+						"default": "postgres",
+						"description": "Username to connect to the server"
+					},
+					"plpgsql-checker.config.password": {
+						"type": "string",
+						"default": "",
+						"description": "Password to connect to the server"
+					},
+					"plpgsql-checker.config.database": {
+						"type": "string",
+						"default": "postgres",
+						"description": "Database to connect to the server"
+					}
+				}
+			}
+		]
+	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",

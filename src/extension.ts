@@ -205,10 +205,10 @@ async function runQuery(query: string): Promise<QueryResult> {
 
 function getClient(): Client {
   return new Client({
-    user: "postgres",
-    password: "postgres",
-    host: "localhost",
-    port: 5432,
-    database: "postgres",
+    user: vscode.workspace.getConfiguration("plpgsql-checker.config").get("user"),
+    password: vscode.workspace.getConfiguration("plpgsql-checker.config").get("password"),
+    host: vscode.workspace.getConfiguration("plpgsql-checker.config").get("host"),
+    port: vscode.workspace.getConfiguration("plpgsql-checker.config").get("port"),
+    database: vscode.workspace.getConfiguration("plpgsql-checker.config").get("database"),
   });
 }
