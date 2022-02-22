@@ -14,6 +14,20 @@
 	],
 	"main": "./out/extension.js",
 	"contributes":{
+		"commands":[
+			{
+				"command": "plpgsql-checker.runAndCheckSelectedRoutine",
+				"title": "PL/pgSQL Checker: Run and Check Selected code"
+			},
+			{
+				"command": "plpgsql-checker.checkSelectedRoutine",
+                "title": "PL/pgSQL Checker: Check Selected code"
+			},
+			{
+				"command": "plpgsql-checker.clearAllDiagnostics",
+				"title": "PL/pgSQL Checker: Clear All Diagnostics"
+			}
+		],
 		"configuration":[
 			{
 				"title": "PL/pgSQL Check Linter",
@@ -35,15 +49,31 @@
 					},
 					"plpgsql-checker.config.password": {
 						"type": "string",
-						"default": "",
+						"default": "postgres",
 						"description": "Password to connect to the server"
 					},
 					"plpgsql-checker.config.database": {
 						"type": "string",
 						"default": "postgres",
 						"description": "Database to connect to the server"
+					},
+
+					"plpgsql-checker.fatalErrorsEnabled": {
+						"type": "boolean",
+						"default": false,
+						"description": "Fatal Error Param in PL/pgSQL Check"
 					}
 				}
+			}
+		],
+		"keybindings": [
+			{
+				"key": "ctrl+alt+x",
+				"command": "plpgsql-checker.runAndCheckSelectedRoutine"
+			},
+			{
+				"key": "ctrl+alt+c",
+				"command": "plpgsql-checker.checkSelectedRoutine"
 			}
 		]
 	},
