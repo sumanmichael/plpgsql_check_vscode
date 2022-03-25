@@ -122,7 +122,17 @@ async function getDiagnosticsForRoutine(
   }
 
   for (const row of jsonData) {
-    const message = row.message;
+    let message = `${row.message} `;
+    if (row.detail) {
+      message += `Detail: (${row.detail}) `;
+    }
+    if (row.hint) {
+      message += `Hint: (${row.hint}) `;
+    }
+    if (row.context) {
+      message += `Context: (${row.context}) `;
+    }
+
     const severity =
       row.level === "error"
         ? vscode.DiagnosticSeverity.Error

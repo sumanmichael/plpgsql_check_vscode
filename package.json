@@ -12,6 +12,10 @@
 	"activationEvents": [
 		"onLanguage:sql"
 	],
+	"repository": {
+		"url": "https://github.com/sumanmichael/plpgsql-checker",
+		"type": "git"
+	},
 	"main": "./out/extension.js",
 	"contributes":{
 		"commands":[
