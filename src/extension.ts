@@ -1,26 +1,31 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import path = require("path");
 import { Client, QueryResult } from "pg";
 import * as vscode from "vscode";
 import { SelectionCodeActions } from "./SelectionCodeActions";
 
-const regex = /(CREATE\s+(OR\s+REPLACE\s+)?(FUNCTION|PROCEDURE)\s+(.+)\s*\(([^\(])*\)([^$])+)(\$([^$])*\$)/mig;
-const regexRoutineNameIndex = 4;
+const parser = require("pgsql-parser");
+
+const client = getClient();
+client.connect().catch((err) => {
+  vscode.window.showErrorMessage("PL/pgSQL Checker: " + (err as Error).message);
+});
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
   const diagnosticCollection =
-    vscode.languages.createDiagnosticCollection("plpgsql-check");
+    vscode.languages.createDiagnosticCollection("plpgsql-checker");
 
   let document = vscode.window.activeTextEditor?.document;
 
-  const editorChangeHook = vscode.window.onDidChangeActiveTextEditor((editor) => {
-    if (editor) {
-       document = vscode.window.activeTextEditor?.document;
+  const editorChangeHook = vscode.window.onDidChangeActiveTextEditor(
+    (editor) => {
+      if (editor) {
+        document = vscode.window.activeTextEditor?.document;
+      }
     }
-  }); 
+  );
 
   const clearAllDiagnosticsCommand = vscode.commands.registerCommand(
     "plpgsql-checker.clearAllDiagnostics",
@@ -29,39 +34,96 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  const runSelectedRoutineFunction = async (checkOnly=false) => {
-    const selectionObj = vscode.window.activeTextEditor?.selection;
-    if (selectionObj) {
-      const selectedText =
-        vscode.window.activeTextEditor?.document.getText(selectionObj);
-      if (selectedText) {
-        if(!checkOnly){
-          const res = await runQuery(selectedText); 
-          res.forEach((row,idx) => {
-            vscode.window.showInformationMessage(row.command + " " + (idx + 1));
-          });
-        }
-
-        const regexp = new RegExp(regex);
-        const match = regexp.exec(selectedText);
-        if (match) {
-          const routineName = match[regexRoutineNameIndex];
-          const routineBlockStartLine = document?.lineAt(selectionObj.start.line + 1);
-          const definitionLine = document?.lineAt(document?.positionAt(document.offsetAt(selectionObj.start)+match.index+match[1].length).line + 1);
-          const diagnostics = await getDiagnosticsForRoutine(
-            document!,
-            routineName,
-            routineBlockStartLine!,
-            definitionLine!
-          );
-          diagnosticCollection.set(document!.uri, diagnostics);
-        }
-      } else {
-        vscode.window.showErrorMessage("Please select a text to run");
-      }
-    } else {
-      vscode.window.showErrorMessage("Please select a text to run");
+  const _runSelectedRoutineFunction = async (checkOnly = false) => {
+    if (!document) {
+      throw Error("Document Not Found");
     }
+    const selectionObj = vscode.window.activeTextEditor?.selection;
+    if (!selectionObj) {
+      throw Error("Selection Invalid");
+    }
+    const selectedText = document.getText(selectionObj);
+    if (!selectedText) {
+      throw Error("Selected Text is Empty");
+    }
+
+    let stmts;
+    try {
+      stmts = parser.parse(selectedText);
+    } catch (err) {
+      throw new Error("Parse Error: " + (err as Error).message);
+    }
+
+    if (!checkOnly) {
+      const res = await runQuery(selectedText);
+      res.forEach((row, idx) => {
+        vscode.window.showInformationMessage(
+          `[${idx + 1}/${res.length}] ${row.command}`
+        );
+      });
+    }
+
+    for (let i = 0; i < stmts.length; i++) {
+      if (stmts[i].RawStmt.stmt.CreateFunctionStmt) {
+        const createStmt = stmts[i].RawStmt.stmt.CreateFunctionStmt;
+        const routineName = createStmt.funcname[0].String.str;
+
+        const createStmtWithLeftSpacesOffset = stmts[i].RawStmt.stmt_location;
+
+        const createStmtWithLeftSpacesText = selectedText.slice(
+          createStmtWithLeftSpacesOffset
+        );
+
+        const leftSpacesCountInCreateStmt =
+          createStmtWithLeftSpacesText.length -
+          createStmtWithLeftSpacesText.trimLeft().length;
+
+        const routineBlockStartPos = document.positionAt(
+          document.offsetAt(selectionObj.start) +
+            createStmtWithLeftSpacesOffset +
+            leftSpacesCountInCreateStmt
+        );
+        const bodyStartFromSelectionOffset = (
+          createStmt.options as any[]
+        ).filter((value) => value.DefElem.defname === "as")[0].DefElem.location;
+
+        const bodyStartPos = document.positionAt(
+          document.offsetAt(selectionObj.start) + bodyStartFromSelectionOffset
+        );
+        const createStmtHeaderRange = new vscode.Range(
+          routineBlockStartPos,
+          bodyStartPos
+        );
+        const definitionLine = document.lineAt(
+          document.positionAt(
+            document.offsetAt(selectionObj.start) + bodyStartFromSelectionOffset
+          ).line + 1
+        );
+        const diagnostics = await getDiagnosticsForRoutine(
+          document,
+          routineName,
+          createStmtHeaderRange,
+          definitionLine!
+        );
+        diagnosticCollection.set(document.uri, diagnostics);
+      }
+    }
+  };
+
+  const runSelectedRoutineFunction = async (checkOnly = false) => {
+    _runSelectedRoutineFunction(checkOnly).catch((err) => {
+      let message = `${err.message} `;
+      if (err.detail) {
+        message += `\nDetail: (${err.detail}) `;
+      }
+      if (err.hint) {
+        message += `\nHint: (${err.hint}) `;
+      }
+      if (err.context) {
+        message += `\nContext: (${err.context}) `;
+      }
+      vscode.window.showErrorMessage("PL/pgSQL Checker: " + message);
+    });
   };
 
   const runSelectedRoutineCommand = vscode.commands.registerCommand(
@@ -77,10 +139,9 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   const codeActionProvider = vscode.languages.registerCodeActionsProvider(
-    'sql', 
+    "sql",
     new SelectionCodeActions()
   );
-
 
   // Push all of the disposables that should be cleaned up when the extension is disabled
   context.subscriptions.push(
@@ -100,22 +161,12 @@ export function deactivate() {}
 async function getDiagnosticsForRoutine(
   document: vscode.TextDocument,
   routineName: string,
-  routineBlockStartLine: vscode.TextLine,
+  routineDeclarationRange: vscode.Range,
   definitionLine: vscode.TextLine
 ): Promise<vscode.Diagnostic[]> {
   const diagnostics = new Array<vscode.Diagnostic>();
 
-  const jsonData = await getPlpgsqlCheckJson(routineName).catch(
-    (err) =>
-      new vscode.Diagnostic(
-        new vscode.Range(
-          document.lineAt(definitionLine.lineNumber).range.start,
-          document.lineAt(definitionLine.lineNumber).range.end
-        ),
-        err.message,
-        vscode.DiagnosticSeverity.Error
-      )
-  );
+  const jsonData = await getPlpgsqlCheckJson(routineName);
 
   if (jsonData instanceof vscode.Diagnostic) {
     return [jsonData];
@@ -133,17 +184,42 @@ async function getDiagnosticsForRoutine(
       message += `Context: (${row.context}) `;
     }
 
+    if (row.statement) {
+      message += `[${row.statement}]`;
+    }
+
     const severity =
       row.level === "error"
         ? vscode.DiagnosticSeverity.Error
         : vscode.DiagnosticSeverity.Warning;
-    const relativeLineNumber = row.lineno;
-    const absLineNumber =
-      definitionLine.lineNumber + relativeLineNumber - 2;
-    const absLine = document.lineAt(absLineNumber);
-    const range = new vscode.Range(absLine.range.start, absLine.range.end);
 
-    diagnostics.push(new vscode.Diagnostic(range, message, severity));
+    let range;
+    if (row.lineno) {
+      const queryLine = document.lineAt(
+        routineDeclarationRange.end.line + row.lineno - 1
+      );
+      const charQueryOffset =
+        queryLine.firstNonWhitespaceCharacterIndex + row.position;
+      const diagPos = document.positionAt(
+        document.offsetAt(queryLine.range.start) + charQueryOffset
+      );
+      const diagWordRange = document.getWordRangeAtPosition(diagPos);
+
+      if (!diagWordRange || diagWordRange.isEmpty) {
+        range = queryLine.range;
+      } else {
+        range = diagWordRange;
+      }
+    } else {
+      range = routineDeclarationRange;
+    }
+    const diag = new vscode.Diagnostic(range, message, severity);
+    if (row.sqlstate) {
+      diag.code = row.sqlstate;
+    }
+    diag.source = 'plpgsql-checker';
+    // code = row.sqlstate
+    diagnostics.push(diag);
   }
 
   return diagnostics;
@@ -153,7 +229,9 @@ async function getPlpgsqlCheckJson(functionName: string): Promise<any> {
   const client = getClient();
   await client.connect();
 
-  const fatalErrors = vscode.workspace.getConfiguration("plpgsql-checker").get("fatalErrorsEnabled");
+  const fatalErrors = vscode.workspace
+    .getConfiguration("plpgsql-checker")
+    .get("fatalErrorsEnabled");
   const res = await client.query(
     "SELECT * FROM plpgsql_check_function_tb($1, fatal_errors := $2)",
     [functionName, fatalErrors]
@@ -163,26 +241,23 @@ async function getPlpgsqlCheckJson(functionName: string): Promise<any> {
 }
 
 async function runQuery(query: string): Promise<Array<QueryResult>> {
-  const client = getClient();
-  await client.connect();
-
   const res = await client.query(query);
-  await client.end();
-  
-  if(res instanceof Array){
+  // await client.end();
+
+  if (res instanceof Array) {
     return res;
-  }else{
+  } else {
     return [res];
   }
-
 }
 
 function getClient(): Client {
+  const config = vscode.workspace.getConfiguration("plpgsql-checker.config");
   return new Client({
-    user: vscode.workspace.getConfiguration("plpgsql-checker.config").get("user"),
-    password: vscode.workspace.getConfiguration("plpgsql-checker.config").get("password"),
-    host: vscode.workspace.getConfiguration("plpgsql-checker.config").get("host"),
-    port: vscode.workspace.getConfiguration("plpgsql-checker.config").get("port"),
-    database: vscode.workspace.getConfiguration("plpgsql-checker.config").get("database"),
+    user: config.get("user"),
+    password: config.get("password"),
+    host: config.get("host"),
+    port: config.get("port"),
+    database: config.get("database"),
   });
 }
