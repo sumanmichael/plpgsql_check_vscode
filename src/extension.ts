@@ -11,6 +11,9 @@ client.connect().catch((err) => {
   vscode.window.showErrorMessage("PL/pgSQL Checker: " + (err as Error).message);
 });
 
+// TODO: Do I need to end the client explicitly?
+// await client.end();
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
@@ -226,9 +229,6 @@ async function getDiagnosticsForRoutine(
 }
 
 async function getPlpgsqlCheckJson(functionName: string): Promise<any> {
-  const client = getClient();
-  await client.connect();
-
   const fatalErrors = vscode.workspace
     .getConfiguration("plpgsql-checker")
     .get("fatalErrorsEnabled");
@@ -236,14 +236,11 @@ async function getPlpgsqlCheckJson(functionName: string): Promise<any> {
     "SELECT * FROM plpgsql_check_function_tb($1, fatal_errors := $2)",
     [functionName, fatalErrors]
   );
-  await client.end();
   return res.rows;
 }
 
 async function runQuery(query: string): Promise<Array<QueryResult>> {
   const res = await client.query(query);
-  // await client.end();
-
   if (res instanceof Array) {
     return res;
   } else {
