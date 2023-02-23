@@ -66,7 +66,7 @@ export async function activate(context: vscode.ExtensionContext) {
     for (let i = 0; i < stmts.length; i++) {
       if (stmts[i].RawStmt.stmt.CreateFunctionStmt) {
         const createStmt = stmts[i].RawStmt.stmt.CreateFunctionStmt;
-        const routineName = createStmt.funcname[0].String.str;
+        const routineName = createStmt.funcname.map((name: any) => name.String.str).join(".");
 
         const createStmtWithLeftSpacesOffset = stmts[i].RawStmt.stmt_location;
 
