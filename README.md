@@ -1,5 +1,15 @@
 # PL/pgSQL Checker for VSCode
 
+Plpgsql-checker is a powerful extension for Visual Studio Code that enables developers to run checks on procedures and functions written in PL/pgSQL language using the [plpgsql_check](https://github.com/okbob/plpgsql_check) PostgreSQL extension. PL/pgSQL is a procedural programming language used to develop stored procedures, functions, and triggers in PostgreSQL databases.
+
+The plpgsql_check extension provides a way to check the syntax and performance of PL/pgSQL code. It is a valuable tool for developers to identify potential issues in their code and optimize its performance.
+
+Plpgsql-checker extension is designed to integrate seamlessly with Visual Studio Code, providing a convenient and user-friendly interface for running PL/pgSQL code checks. The extension allows developers to highlight any PL/pgSQL code within their text editor and run the plpgsql_check command with just a few clicks.
+
+With plpgsql-checker, developers can perform syntax checks to detect errors and warnings in their code, as well as run performance checks to identify potential bottlenecks and optimize the code accordingly. The extension displays the results of these checks directly in the Visual Studio Code interface, making it easy for developers to identify and resolve issues quickly.
+
+In summary, the plpgsql-checker extension for Visual Studio Code is an essential tool for developers working with PostgreSQL databases and PL/pgSQL code. It provides an efficient and effective way to identify and address issues in code, leading to better performance and more reliable database applications.
+
 > Note: This extension, doesn't work on Windows. See https://github.com/pyramation/pgsql-parser/issues/95#issuecomment-1376730703, https://github.com/pganalyze/libpg_query/issues/44
 
 ## Install the extension
