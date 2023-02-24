@@ -16,4 +16,5 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 ### Removed
 
+- Removed support for **Windows**, due to pgsql-parser. See https://github.com/pganalyze/libpg_query/issues/44, https://github.com/pyramation/pgsql-parser/issues/95#issuecomment-1376730703
 - Replaced regex to parse CREATE routine blocks
