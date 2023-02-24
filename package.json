@@ -2,7 +2,7 @@
 	"name": "plpgsql-checker",
 	"displayName": "PL/pgSQL Check Linter",
 	"description": "PL/pgSQL Check Linter",
-	"version": "0.0.1",
+	"version": "0.1.0-alpha",
 	"engines": {
 		"vscode": "^1.64.0"
 	},
@@ -17,22 +17,22 @@
 		"type": "git"
 	},
 	"main": "./out/extension.js",
-	"contributes":{
-		"commands":[
+	"contributes": {
+		"commands": [
 			{
 				"command": "plpgsql-checker.runAndCheckSelectedRoutine",
-				"title": "PL/pgSQL Checker: Run and Check Selected code"
+				"title": "PL/pgSQL Checker: Run and Check Selection"
 			},
 			{
 				"command": "plpgsql-checker.checkSelectedRoutine",
-                "title": "PL/pgSQL Checker: Check Selected code"
+				"title": "PL/pgSQL Checker: Check Selection"
 			},
 			{
 				"command": "plpgsql-checker.clearAllDiagnostics",
 				"title": "PL/pgSQL Checker: Clear All Diagnostics"
 			}
 		],
-		"configuration":[
+		"configuration": [
 			{
 				"title": "PL/pgSQL Check Linter",
 				"properties": {
@@ -43,7 +43,7 @@
 					},
 					"plpgsql-checker.config.port": {
 						"type": "number",
-						"default": "5432",
+						"default": 5432,
 						"description": "Port of the server"
 					},
 					"plpgsql-checker.config.user": {
@@ -61,7 +61,6 @@
 						"default": "postgres",
 						"description": "Database to connect to the server"
 					},
-
 					"plpgsql-checker.fatalErrorsEnabled": {
 						"type": "boolean",
 						"default": false,
@@ -104,6 +103,7 @@
 		"typescript": "^4.5.4"
 	},
 	"dependencies": {
-		"pg": "^8.7.3"
+		"pg": "^8.7.3",
+		"pgsql-parser": "^13.4.1"
 	}
 }
